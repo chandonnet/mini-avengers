@@ -7,13 +7,17 @@ Created on 29 nov. 2013
 # -*- coding: iso-8859-1 -*-
  
 #import mysocket
-import socket
-import threading
+import select 
+import socket 
+import sys 
+import threading 
+
 from os import listdir
 import os
 from xml.dom.minidom import parse, parseString
  
-class serveur:
+
+class Serveur:
     """
     Squelette du serveur
     """
@@ -27,16 +31,53 @@ class serveur:
     MAX_RECV = 1024
  
     def __init__(self, host, port):
-        "Constructeur du serveur et attendre une connection"
- 
-        self.un_socket.bind((host, port))    
- 
+        self.host = host
+        self.port = port
+        self.backlog = 5;
+        self.threads = []    
+        self.serveur = None
         # Passer en mode ecoute.
-        self.un_socket.listen(5)  
- 
-        c, addr = self.un_socket.accept()
-        self.connexion = c
- 
+    
+    def sendToAll(self, msg):
+        for t in self.threads:
+            t.send(msg)
+    
+    def open_socket(self):
+        try: 
+            self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+            self.server.bind((self.host,self.port)) 
+            self.server.listen(5) 
+        except socket.error, (e, message): 
+            print "Could not open socket: " + message 
+            sys.exit(1)
+            
+    def run(self):
+        self.open_socket() 
+        input = [self.server,sys.stdin] 
+        running = 1 
+        while running: 
+            inputready,outputready,exceptready = select.select(input,[],[]) 
+            
+            for s in inputready: 
+                
+                if s == self.server: 
+                    # handle the server socket 
+                    c = Client(self.server.accept(), self) 
+                    c.start()
+                    self.threads.append(c) 
+
+                elif s == sys.stdin: 
+                    # handle standard input 
+                    junk = sys.stdin.readline() 
+                    running = 0 
+
+        # close all threads 
+
+        self.server.close() 
+        for c in self.threads: 
+            c.join() 
+    
+        
     def bonjour(self):
         "Traitement de <bonjour />"
         dom = parseString("<bonjour >")
@@ -56,67 +97,43 @@ class serveur:
         "Traitement de <link />"
         dom = parseString("<link>"+link+"</link>")
         return dom.toxml()
+
+##########################################
+class Client (threading.Thread):
+    
+    def __init__(self, (client,address), serveur):
+        threading.Thread.__init__(self)
+        threading.Thread.__init__(self) 
+        self.client = client 
+        self.serveur = serveur
+        self.address = address
+        self.size = 1024
+        self.client.send("Serveur: Bienvenue!")
+
+    def send(self,  msg):
+        self.client.send(msg)
+        
+    def run(self): 
+        running = 1 
+        while running: 
+            data = self.client.recv(self.size) 
+            sys.stdout.write(data)
+            if data: 
+                self.serveur.sendToAll(data)
+                
+            
+            
         
 ##########################################
 ### Main ###
 if __name__ == '__main__':
-    serv = serveur('localhost', 12351)
-    
-    msgServer = ""
+    serv = Serveur('162.209.100.18', 50008)
+    serv.run()
+ 
    
         
-    # On attend un message du client.
-    msgClient = serv.connexion.recv(serv.MAX_RECV)
- 
-    try:
-        dom = parseString(msgClient)
-    except:
-        print "XML invalide!"
-        serv.connexion.close()
-        break
-             
-    
-    # Traitement de <bonjour />
-        
-    for node in dom.getElementsByTagName('bonjour'): 
-        if node.firstChild == None:
-            msgServeur = serv.bonjour()
-            
-    # Traitement de <message />
-        
-    for node in dom.getElementsByTagName('message'): 
-        if node.firstChild == None:
-            msgServeur = serv.bonjour()
-    
-    # Traitement de <skipVideo />
-        
-    for node in dom.getElementsByTagName('skipVideo'): 
-        if node.firstChild == None:
-            msgServeur = serv.bonjour()
-    
-    
-    # Traitement de <messageAdmin />
-        
-    for node in dom.getElementsByTagName('messageAdmin'): 
-        if node.firstChild == None:
-            msgServeur = serv.bonjour()
-            
-    # Traitement de <videoLink />
-        
-    for node in dom.getElementsByTagName('videoLink'): 
-        if node.firstChild == None:
-            msgServeur = serv.bonjour()
-                
-    serv.connexion.send(msgServeur)
+   
+      
     
 #########################################
 
-class  thread(threading.thread):
-    
-    def __init__(self):
-        
-        
-     
-        
-        
-    def run(self):
