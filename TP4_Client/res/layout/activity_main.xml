@@ -2,13 +2,11 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:paddingBottom="@dimen/activity_vertical_margin"
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context=".MainActivity" >
-
     <Button
         android:id="@+id/buttonExit"
         android:layout_width="wrap_content"
@@ -17,48 +15,41 @@
         android:layout_alignParentTop="true"
         android:minHeight="30dp"
         android:text="Exit" />
-
-  
-
     <Button
         android:id="@+id/buttonSend"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_alignParentRight="true"
-        android:onClick="MainActivity.onClick"
+        android:onClick="MainActivity.onSendClick"
         android:text="Send" />
-
     <EditText
         android:id="@+id/editTextChat"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
+        android:inputType="text"
         android:ems="10" >
-
         <requestFocus />
     </EditText>
-
     <ScrollView
-        android:id="@+id/ScrollView01"
+        android:id="@+id/ScrollView"
         android:layout_width="match_parent"
         android:layout_height="140dp"
         android:layout_above="@+id/buttonSend"
         android:layout_alignRight="@+id/buttonSend" >
-
         <TextView
             android:id="@+id/textViewWithScroll"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:text="Server: Hello" />
+            android:layout_height="wrap_content" />
     </ScrollView>
 
     <VideoView
         android:id="@+id/videoView"
-        android:layout_width="wrap_content"
-        android:layout_height="200dp"
-        android:layout_alignLeft="@+id/ScrollView01"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/ScrollView"
         android:layout_below="@+id/buttonExit" />
-    
+
 </RelativeLayout>

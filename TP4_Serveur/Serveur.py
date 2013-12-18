@@ -11,22 +11,15 @@ import select
 import socket 
 import sys 
 import threading 
-
-from os import listdir
-import os
-from xml.dom.minidom import parse, parseString
+import json
+import os 
  
 
 class Serveur:
     """
-    Squelette du serveur
+    Class du serveur, capable de gérer plusieurs clients
     """
- 
-    # Se donner un objet de la classe socket.
-    un_socket = socket.socket()
- 
-    # Socket connexion au client.
-    connexion = None
+
  
     MAX_RECV = 1024
  
@@ -35,13 +28,21 @@ class Serveur:
         self.port = port
         self.backlog = 5;
         self.threads = []    
-        self.serveur = None
-        # Passer en mode ecoute.
+        self.server = None
+        self.open_socket()
     
+    #Envoie le message a tous les clients
     def sendToAll(self, msg):
-        for t in self.threads:
-            t.send(msg)
-    
+        for thread in self.threads:
+            try:
+                thread.send(msg)
+            except socket.error, e:
+                self.threads.remove(thread)
+                thread.close()
+                
+                print e 
+                
+    #Ouvre le socket du serveur
     def open_socket(self):
         try: 
             self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
@@ -52,7 +53,7 @@ class Serveur:
             sys.exit(1)
             
     def run(self):
-        self.open_socket() 
+                                        
         input = [self.server,sys.stdin] 
         running = 1 
         while running: 
@@ -61,43 +62,24 @@ class Serveur:
             for s in inputready: 
                 
                 if s == self.server: 
-                    # handle the server socket 
+                    #Ajoute un nouveau socket pour le client
                     c = Client(self.server.accept(), self) 
                     c.start()
                     self.threads.append(c) 
 
                 elif s == sys.stdin: 
-                    # handle standard input 
                     junk = sys.stdin.readline() 
-                    running = 0 
+                    running = 0
+                    
+             
 
-        # close all threads 
+        #Ferme les threads de clients 
 
         self.server.close() 
-        for c in self.threads: 
-            c.join() 
+        for thread in self.threads: 
+            thread.join() 
     
-        
-    def bonjour(self):
-        "Traitement de <bonjour />"
-        dom = parseString("<bonjour >")
-        return dom.toxml()
-        
-    def message(self,sender,msg):
-        "Traitement de <message />"
-        dom = parseString("<messageClient><sender>"+sender+"</sender><message>"+msg+"</message></messageClient>")
-        return dom.toxml()
-    
-    def messageAdmin(self,msg):
-        "Traitement de <messageAdmin />"
-        dom = parseString("<messageAdmin>"+msg+"</messageAdmin>")
-        return dom.toxml()
-    
-    def videoLink(self,link):
-        "Traitement de <link />"
-        dom = parseString("<link>"+link+"</link>")
-        return dom.toxml()
-
+#Thread servant à gérer un client
 ##########################################
 class Client (threading.Thread):
     
@@ -108,20 +90,32 @@ class Client (threading.Thread):
         self.serveur = serveur
         self.address = address
         self.size = 1024
-        self.client.send("Serveur: Bienvenue!")
+        
 
+    #Envoie des données à partir du socket 
     def send(self,  msg):
         self.client.send(msg)
-        
+    #Retourne le socket    
+    def getClient(self):
+        return self.client
+    #retourne l'adresse du socket
+    def getAddress(self):
+        return self.address
+    #Ferme le socket
+    def close(self):
+        self.client.close()
+
     def run(self): 
         running = 1 
+        self.client.send("Serveur: Bienvenue! \n")
         while running: 
             data = self.client.recv(self.size) 
             sys.stdout.write(data)
             if data: 
+                
                 self.serveur.sendToAll(data)
                 
-            
+        self.client.close()
             
         
 ##########################################
